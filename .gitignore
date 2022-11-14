@@ -1,0 +1,6 @@
+.libs
+.deps
+autom4te.cache
+*.lo
+*.la
+*.o
