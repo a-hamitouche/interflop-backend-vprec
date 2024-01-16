@@ -39,6 +39,9 @@
 #include "interflop_vprec.h"
 #include "interflop_vprec_function_instrumentation.h"
 
+#include "x86_64/interflop_vector_vprec_sse.h"
+#include "x86_64/interflop_vector_vprec_scalar.h"
+
 static const char backend_name[] = "interflop-vprec";
 static const char backend_version[] = "1.x-dev";
 
@@ -786,8 +789,8 @@ void _vprec_alloc_context(void **context) {
 
 /* intialize the context */
 static void _vprec_init_context(vprec_context_t *ctx) {
-  ctx->binary32_precision = VPREC_PRECISION_BINARY32_DEFAULT;
-  ctx->binary32_range = VPREC_RANGE_BINARY32_DEFAULT;
+  ctx->binary32_precision = VPREC_PRECISION_BINARY32_DEFAULT - 13;
+  ctx->binary32_range = VPREC_RANGE_BINARY32_DEFAULT - 3;
   ctx->binary64_precision = VPREC_PRECISION_BINARY64_DEFAULT;
   ctx->binary64_range = VPREC_RANGE_BINARY64_DEFAULT;
   ctx->mode = VPREC_MODE_DEFAULT;
@@ -844,7 +847,9 @@ static struct argp_option options[] = {
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   vprec_context_t *ctx = (vprec_context_t *)state->input;
+  logger_info("Before child \n");
   state->child_inputs[0] = ctx;
+  logger_info("After child \n");
   char *endptr;
   int val = -1;
   int precision = 0;
@@ -918,6 +923,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case KEY_MODE:
     /* mode */
+    logger_info("----set mode : %s %p\n", arg, ctx);
     if (interflop_strcasecmp(VPREC_MODE_STR[vprecmode_ieee], arg) == 0) {
       _set_vprec_mode(vprecmode_ieee, ctx);
     } else if (interflop_strcasecmp(VPREC_MODE_STR[vprecmode_full], arg) == 0) {
@@ -1115,7 +1121,13 @@ struct interflop_backend_interface_t INTERFLOP_VPREC_API(init)(void *context) {
     interflop_enter_function : INTERFLOP_VPREC_API(enter_function),
     interflop_exit_function : INTERFLOP_VPREC_API(exit_function),
     interflop_user_call : INTERFLOP_VPREC_API(user_call),
-    interflop_finalize : INTERFLOP_VPREC_API(finalize)
+    interflop_finalize : INTERFLOP_VPREC_API(finalize),
+    vbackend : {
+      scalar : interflop_vector_vprec_init_scalar (Null),
+      vector128 : interflop_vector_vprec_init_sse (Null),
+      vector256 : interflop_vector_vprec_init_sse (Null),
+      vector512 : interflop_vector_vprec_init_sse (Null)
+    }
   };
 
   return interflop_backend_vprec;
